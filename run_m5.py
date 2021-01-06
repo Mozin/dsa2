@@ -9,8 +9,7 @@ import os
 
 
 ##### import all Feature engineering functions
-from util_feat_m5 import *
-
+from source.util_feature import *
 
 def features_to_category(df):
 	nan_features = ['event_name_1', 'event_type_1', 'event_name_2', 'event_type_2']
@@ -59,13 +58,14 @@ def get_file_feat_from_meta_csv(selected_cols):
 	return {k:list(set(v)) for k,v in file_feat_mapping.items()}
 
 
-def features_generate_file(dir_in, dir_out, my_fun_features, features_group_name) :
+def features_generate_file(dir_in, dir_out, my_fun_features, features_group_name, extra_df_list = []) :
 
     # from util_feat_m5  import lag_featrues
     # features_generate_file(dir_in, dir_out, lag_featrues)
 
 	merged_df = pd.read_parquet(dir_in + "/raw_merged.df.parquet")
-	dfnew, cat_cols= my_fun_features(merged_df)
+	df_list = [merged_df] + extra_df_list
+	dfnew, cat_cols= my_fun_features(df_list)
 	dfnew.to_parquet(f'{dir_out}/{features_group_name}.parquet')
 	# num_cols = list(set(dfnew._get_numeric_data().columns))
 	update_meta_csv(dfnew.columns, f'{features_group_name}.parquet', cat_cols)
@@ -80,10 +80,9 @@ def feature_merge_df(df_list, cols_join):
 
 
 def raw_merged_df(input_path = "", fname='raw_merged.df.parquet', max_rows=10):
-	df_sales_train            = pd.read_csv("data/sales_train_eval.csv")
-	df_calendar               = pd.read_csv("data/calendar.csv")
-	df_sales_val              = pd.read_csv("data/sales_train_val.csv")
-	df_sell_price             = pd.read_csv("data/sell_prices.csv")
+	df_calendar               = pd.read_csv(f"{input_path}/raw/calendar.csv")
+	df_sales_val              = pd.read_csv(f"{input_path}/raw/sales_train_val.csv")
+	df_sell_price             = pd.read_csv(f"{input_path}/raw/sell_prices.csv")
 	# df_submi                  = pd.read_csv("data/sample_submi.csv")
 
 	df_sales_val_melt         = pd.melt(df_sales_val[0:max_rows], id_vars = ['id', 'item_id', 'dept_id', 'cat_id', 'store_id', 'state_id'], var_name = 'day', value_name = 'demand')
@@ -244,14 +243,18 @@ if __name__ == "__main__":
 	#run_eval(100)
 
 	# To be run once
-	raw_merged_df(input_path = "data/input/m5")
+	input_path = "data/input/m5"
+	raw_merged_df(input_path = input_path)
+
+	df_calendar               = pd.read_csv(f"{input_path}/raw/calendar.csv")
+	df_sales_val              = pd.read_csv(f"{input_path}/raw/sales_train_val.csv")
 
 	# Generating features
-	features_generate_file(".", "data/output/m5", basic_time_features, "basic_time")
-	features_generate_file(".", "data/output/m5", features_rolling, "rolling")
-	features_generate_file(".", "data/output/m5", features_lag, "lag")
-	features_generate_file(".", "data/output/m5", features_tsfresh, "tsfresh")
-	features_generate_file(".", "data/output/m5", identity_features, "identity")
+	features_generate_file(".", "data/input/m5/processed", basic_time_features, "basic_time")
+	features_generate_file(".", "data/input/m5/processed", features_rolling, "rolling")
+	features_generate_file(".", "data/input/m5/processed", features_lag, "lag")
+	features_generate_file(".", "data/input/m5/processed", features_tsfresh, "tsfresh", extra_df_list = [df_sales_val, df_calendar])
+	features_generate_file(".", "data/input/m5/processed", identity_features, "identity")
 
 	run_eval()
 
