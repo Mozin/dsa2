@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from tsfresh import extract_relevant_features, extract_features
+from tsfresh.utilities.dataframe_functions import roll_time_series
+
+
 #############################################################################################
 print("os.getcwd", os.getcwd())
 
@@ -1249,7 +1253,8 @@ def np_conv_to_one_col(np_array, sep_char="_"):
 
 
 
-def lag_featrues(df):
+def lag_featrues(df_list):
+    df = df_list[0]
     out_df = df[['item_id', 'dept_id', 'cat_id', 'store_id', 'state_id']]
     ###############################################################################
     # day lag 29~57 day and last year's day lag 1~28 day
@@ -1415,7 +1420,8 @@ def lag_featrues(df):
     return out_df
 
 
-def basic_time_features(df):
+def basic_time_features(df_list):
+    df = df_list[0]
     df['date_t'] = pd.to_datetime(df['date'])
     df['year'] = df['date_t'].dt.year
     df['month'] = df['date_t'].dt.month
@@ -1427,13 +1433,15 @@ def basic_time_features(df):
 
 
 
-def identity_features(df):
+def identity_features(df_list):
+    df = df_list[0]
     cat_cols = ['item_id', 'dept_id', 'cat_id', 'store_id', 'state_id', 'event_name_1', 'event_type_1', 'event_name_2', 'event_type_2']
     df = df.drop(['d', 'id', 'day', 'wm_yr_wk'], axis = 1)
     return df, cat_cols
 
 
-def features_rolling(df):
+def features_rolling(df_list):
+    df = df_list[0]
     cat_cols = []
     created_cols = []
 
@@ -1461,7 +1469,8 @@ def features_rolling(df):
 
 
 
-def features_lag(df):
+def features_lag(df_list):
+    df = df_list[0]
     created_cols = []
     cat_cols = []
 
@@ -1541,8 +1550,10 @@ def _get_tsfresh_df_sales_melt(df_sales):
 
 
 
-def features_tsfresh(df_sales_val, df_calendar, max_rows = 10):
-    # df is taken as an argument to make it work in the existing pipeline of saving features in meta_csv
+def features_tsfresh(df_list, max_rows = 10):
+    df_sales_val = df_list[1]
+    df_calendar = df_list[2]
+
 
     df_sales_val_melt         = _get_tsfresh_df_sales_melt(df_sales_val[0:max_rows])
     df_calendar.drop(['weekday', 'wday', 'month', 'year'], inplace = True, axis = 1)
