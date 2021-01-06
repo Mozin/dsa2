@@ -50,7 +50,7 @@ def load(file_name):
 
 def load_dataset(path_data_x, path_data_y='',  colid="jobId", n_sample=-1):
     log('loading', colid, path_data_x)
-    import glob 
+    import glob
     import ntpath
     flist = glob.glob( ntpath.dirname(path_data_x)+"/*" )#ntpath.dirname(path_data_x)+"/*"
     flist = [ f for f in flist if os.path.splitext(f)[1][1:].strip().lower() in [ 'zip', 'parquet'] and ntpath.basename(f)[:8] in ['features'] ]
@@ -72,8 +72,8 @@ def load_dataset(path_data_x, path_data_y='',  colid="jobId", n_sample=-1):
       df[colid] = np.arange(0, len(df))
     df        = df.set_index(colid)
 
-        
-    if n_sample > 0: 
+
+    if n_sample > 0:
         df = df.iloc[:n_sample, :]
 
     log("###### Load dfy target values ###################################")
@@ -85,16 +85,16 @@ def load_dataset(path_data_x, path_data_y='',  colid="jobId", n_sample=-1):
         for fi in flist :
             if ".parquet" in fi :  dfi = pd.read_parquet(fi) # + "/features.zip")
             if ".zip" in fi  :     dfi = pd.read_csv(fi) # + "/features.zip")
-            dfy = pd.concat((dfy, dfi)) 
+            dfy = pd.concat((dfy, dfi))
 
-        log("dfy", dfy.head(4).T)        
+        log("dfy", dfy.head(4).T)
         if colid not in list(dfy.columns) :
             dfy[colid] = np.arange(0, len(dfy))
-        
+
         df = df.join(dfy.set_index(colid), on=colid, how='left', )
     except Exception as e :
         log("dfy not loaded", path_data_y, e  )
-        
+
     return df
 
 
@@ -102,66 +102,66 @@ def load_dataset(path_data_x, path_data_y='',  colid="jobId", n_sample=-1):
 
 
 def pd_read_file(path_glob="*.pkl", ignore_index=True,  cols=None,
-                  verbose=False, nrows=-1, concat_sort=True, n_pool=1, 
+                  verbose=False, nrows=-1, concat_sort=True, n_pool=1,
                   drop_duplicates=None, shop_id=None, nmax= 1000000000,  **kw):
   """
      "*.pkl, *.parquet"
-  
-  """ 
-  # os.environ["MODIN_ENGINE"] = "dask"   
-  # import modin.pandas as pd  
+
+  """
+  # os.environ["MODIN_ENGINE"] = "dask"
+  # import modin.pandas as pd
   import glob, gc,  pandas as pd, os
   readers = {
           ".pkl"     : pd.read_pickle,
           ".parquet" : pd.read_parquet,
-          ".csv"     : pd.read_csv,           
+          ".csv"     : pd.read_csv,
           ".txt"     : pd.read_csv,
    }
   from multiprocessing.pool import ThreadPool
   pool = ThreadPool(processes=n_pool)
-  
+
   path_glob_list = [ t.strip() for t in  path_glob.split(",") ]
   file_list = []
-  for pg in path_glob_list : 
-    file_list = file_list + glob.glob(pg)     
+  for pg in path_glob_list :
+    file_list = file_list + glob.glob(pg)
   file_list.sort()
   n_file = len(file_list)
-  if n_file < 1: raise Exception("No file exist", path_glob)  
-  
+  if n_file < 1: raise Exception("No file exist", path_glob)
+
   # print("ok", verbose)
   dfall = pd.DataFrame()
 
   if verbose : log(n_file,  n_file // n_pool )
   for j in range(n_file // n_pool +1 ) :
-      log("Pool", j)  
-      job_list =[]   
-      for i in range(n_pool):  
-         if n_pool*j + i >= n_file  : break 
+      log("Pool", j)
+      job_list =[]
+      for i in range(n_pool):
+         if n_pool*j + i >= n_file  : break
          filei         = file_list[n_pool*j + i]
          ext           = os.path.splitext(filei)[1]
-         pd_reader_obj = readers[ext]                            
-         job_list.append( pool.apply_async(pd_reader_obj, (filei, )))  
+         pd_reader_obj = readers[ext]
+         job_list.append( pool.apply_async(pd_reader_obj, (filei, )))
          if verbose : log(j, filei)
-    
-      for i in range(n_pool):  
-        if i >= len(job_list): break  
+
+      for i in range(n_pool):
+        if i >= len(job_list): break
         dfi   = job_list[i].get()
 
-        if shop_id is not None and "shop_id" in  dfi.columns : dfi = dfi[ dfi['shop_id'] == shop_id ]         
-        if cols is not None :    dfi = dfi[cols] 
+        if shop_id is not None and "shop_id" in  dfi.columns : dfi = dfi[ dfi['shop_id'] == shop_id ]
+        if cols is not None :    dfi = dfi[cols]
         if nrows > 0        :    dfi = dfi.iloc[:nrows,:]
-        if drop_duplicates is not None  : dfi = dfi.drop_duplicates(drop_duplicates) 
-        gc.collect()            
-            
-        dfall = pd.concat( (dfall, dfi), ignore_index=ignore_index, sort= concat_sort)        
+        if drop_duplicates is not None  : dfi = dfi.drop_duplicates(drop_duplicates)
+        gc.collect()
+
+        dfall = pd.concat( (dfall, dfi), ignore_index=ignore_index, sort= concat_sort)
         #log("Len", n_pool*j + i, len(dfall))
         del dfi; gc.collect()
-        
+
         if len(dfall) > nmax : return dfall
-        
+
   if verbose : log(n_file, j * n_file//n_pool )
   gc.collect()
-  return dfall  
+  return dfall
 
 
 
@@ -368,7 +368,7 @@ def test_heteroscedacity(y, y_pred, pred_value_only=1):
        Test  Heteroscedacity :  Residual**2  = Linear(X, Pred, Pred**2)
        F pvalues < 0.01 : Null is Rejected  ---> Not Homoscedastic
        het_breuschpagan
-    
+
     """
     from statsmodels.stats.diagnostic import het_breuschpagan, het_white
     error    = y_pred - y
@@ -388,7 +388,7 @@ def test_normality(error, distribution="norm", test_size_limit=5000):
     """
        Test  Is Normal distribution
        F pvalues < 0.01 : Rejected
-    
+
     """
     from scipy.stats import shapiro, anderson, kstest
 
@@ -413,7 +413,7 @@ def test_mutualinfo(error, Xtest, colname=None, bins=5):
     """
        Test  Error vs Input Variable Independance byt Mutual ifno
        sklearn.feature_selection.mutual_info_classif(X, y, discrete_features='auto', n_neighbors=3, copy=True, random_state=None)
-    
+
     """
     from sklearn.feature_selection import mutual_info_classif
     error = pd.DataFrame({"error": error})
@@ -529,7 +529,7 @@ def pd_feature_generate_cross(df, cols, cols_cross_input=None, pct_threshold=0.2
         # coli, colj = colij.split("-")[0], colij.split("-")[1]
         dfX_cross[coli + "-" + colj] = dfX[coli] * dfX[colj]
 
-      
+
     del dfX_cross[cols[0]]      #when colcross is empty, this make problem
     return dfX_cross, col_cross
 
@@ -1246,3 +1246,308 @@ def np_conv_to_one_col(np_array, sep_char="_"):
 
     np_array_=np.apply_along_axis(row2string,1,np_array)
     return np_array_[:,None]
+
+
+
+def lag_featrues(df):
+    out_df = df[['item_id', 'dept_id', 'cat_id', 'store_id', 'state_id']]
+    ###############################################################################
+    # day lag 29~57 day and last year's day lag 1~28 day
+    day_lag = df.iloc[:,-28:]
+    day_year_lag = df.iloc[:,-393:-365]
+    day_lag.columns = [str("lag_{}_day".format(i)) for i in range(29,57)] # Rename columns
+    day_year_lag.columns = [str("lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+
+    # Rolling mean(3) and (7) and (28) and (84) 29~57 day and last year's day lag 1~28 day
+    rolling_3 = df.iloc[:,-730:].T.rolling(3).mean().T.iloc[:,-28:]
+    rolling_3.columns = [str("rolling3_lag_{}_day".format(i)) for i in range(29,57)] # Rename columns
+    rolling_3_year = df.iloc[:,-730:].T.rolling(3).mean().T.iloc[:,-393:-365]
+    rolling_3_year.columns = [str("rolling3_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+
+    rolling_7 = df.iloc[:,-730:].T.rolling(7).mean().T.iloc[:,-28:]
+    rolling_7.columns = [str("rolling7_lag_{}_day".format(i)) for i in range(29,57)] # Rename columns
+    rolling_7_year = df.iloc[:,-730:].T.rolling(7).mean().T.iloc[:,-393:-365]
+    rolling_7_year.columns = [str("rolling7_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+
+    rolling_28 = df.iloc[:,-730:].T.rolling(28).mean().T.iloc[:,-28:]
+    rolling_28.columns = [str("rolling28_lag_{}_day".format(i)) for i in range(29,57)]
+    rolling_28_year = df.iloc[:,-730:].T.rolling(28).mean().T.iloc[:,-393:-365]
+    rolling_28_year.columns = [str("rolling28_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+
+    rolling_84 = df.iloc[:,-730:].T.rolling(84).mean().T.iloc[:,-28:]
+    rolling_84.columns = [str("rolling84_lag_{}_day".format(i)) for i in range(29,57)]
+    rolling_84_year = df.iloc[:,-730:].T.rolling(84).mean().T.iloc[:,-393:-365]
+    rolling_84_year.columns = [str("rolling84_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+
+    # monthly lag 1~18 month
+    month_lag = pd.DataFrame({})
+    for i in range(1,19):
+        if i == 1:
+            monthly = df.iloc[:,-28*i:].T.sum().T
+            month_lag["monthly_lag_{}_month".format(i)] = monthly
+        else:
+            monthly = df.iloc[:, -28*i:-28*(i-1)].T.sum().T
+            month_lag["monthly_lag_{}_month".format(i)] = monthly
+
+    # combine day lag and monthly lag
+    out_df = pd.concat([out_df, day_lag], axis=1)
+    out_df = pd.concat([out_df, day_year_lag], axis=1)
+    out_df = pd.concat([out_df, rolling_3], axis=1)
+    out_df = pd.concat([out_df, rolling_3_year], axis=1)
+    out_df = pd.concat([out_df, rolling_7], axis=1)
+    out_df = pd.concat([out_df, rolling_7_year], axis=1)
+    out_df = pd.concat([out_df, rolling_28], axis=1)
+    out_df = pd.concat([out_df, rolling_28_year], axis=1)
+    out_df = pd.concat([out_df, rolling_84], axis=1)
+    out_df = pd.concat([out_df, rolling_84_year], axis=1)
+    out_df = pd.concat([out_df, month_lag], axis=1)
+
+    ###############################################################################
+    # dept_id
+    group_dept = df.groupby("dept_id").sum()
+    # day lag 29~57 day and last year's day lag 1~28 day
+    dept_day_lag = group_dept.iloc[:,-28:]
+    dept_day_year_lag = group_dept.iloc[:,-393:-365]
+    dept_day_lag.columns = [str("dept_lag_{}_day".format(i)) for i in range(29,57)]
+    dept_day_year_lag.columns = [str("dept_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+    # monthly lag 1~18 month
+    month_dept_lag = pd.DataFrame({})
+    for i in range(1,19):
+        if i == 1:
+            monthly_dept = group_dept.iloc[:,-28*i:].T.sum().T
+            month_dept_lag["dept_monthly_lag_{}_month".format(i)] = monthly_dept
+        elif i >= 7 and i < 13:
+            continue
+        else:
+            monthly = group_dept.iloc[:, -28*i:-28*(i-1)].T.sum().T
+            month_dept_lag["dept_monthly_lag_{}_month".format(i)] = monthly_dept
+    # combine out df
+    out_df = pd.merge(out_df, dept_day_lag, left_on="dept_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, dept_day_year_lag, left_on="dept_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, month_dept_lag, left_on="dept_id", right_index=True, how="left")
+
+    ###############################################################################
+    # cat_id
+    group_cat = df.groupby("cat_id").sum()
+    # day lag 29~57 day and last year's day lag 1~28 day
+    cat_day_lag = group_cat.iloc[:,-28:]
+    cat_day_year_lag = group_cat.iloc[:,-393:-365]
+    cat_day_lag.columns = [str("cat_lag_{}_day".format(i)) for i in range(29,57)]
+    cat_day_year_lag.columns = [str("cat_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+    # monthly lag 1~18 month
+    month_cat_lag = pd.DataFrame({})
+    for i in range(1,19):
+        if i == 1:
+            monthly_cat = group_cat.iloc[:,-28*i:].T.sum().T
+            month_cat_lag["cat_monthly_lag_{}_month".format(i)] = monthly_cat
+        elif i >= 7 and i < 13:
+            continue
+        else:
+            monthly_cat = group_cat.iloc[:, -28*i:-28*(i-1)].T.sum().T
+            month_cat_lag["dept_monthly_lag_{}_month".format(i)] = monthly_cat
+
+    # combine out df
+    out_df = pd.merge(out_df, cat_day_lag, left_on="cat_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, cat_day_year_lag, left_on="cat_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, month_cat_lag, left_on="cat_id", right_index=True, how="left")
+
+    ###############################################################################
+    # store_id
+    group_store = df.groupby("store_id").sum()
+    # day lag 29~57 day and last year's day lag 1~28 day
+    store_day_lag = group_store.iloc[:,-28:]
+    store_day_year_lag = group_store.iloc[:,-393:-365]
+    store_day_lag.columns = [str("store_lag_{}_day".format(i)) for i in range(29,57)]
+    store_day_year_lag.columns = [str("store_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+    # monthly lag 1~18 month
+    month_store_lag = pd.DataFrame({})
+    for i in range(1,19):
+        if i == 1:
+            monthly_store = group_store.iloc[:,-28*i:].T.sum().T
+            month_store_lag["store_monthly_lag_{}_month".format(i)] = monthly_store
+        elif i >= 7 and i <13:
+            continue
+        else:
+            monthly_store = group_store.iloc[:, -28*i:-28*(i-1)].T.sum().T
+            month_store_lag["store_monthly_lag_{}_month".format(i)] = monthly_store
+
+    # combine out df
+    out_df = pd.merge(out_df, store_day_lag, left_on="store_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, store_day_year_lag, left_on="store_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, month_store_lag, left_on="store_id", right_index=True, how="left")
+
+    ###############################################################################
+    # state_id
+    group_state = df.groupby("state_id").sum()
+    # day lag 29~57 day and last year's day lag 1~28 day
+    state_day_lag = group_state.iloc[:,-28:]
+    state_day_year_lag = group_state.iloc[:,-393:-365]
+    state_day_lag.columns = [str("state_lag_{}_day".format(i)) for i in range(29,57)]
+    state_day_year_lag.columns = [str("state_lag_{}_day_of_last_year".format(i)) for i in range(1,29)]
+    # monthly lag 1~18 month
+    month_state_lag = pd.DataFrame({})
+    for i in range(1,13):
+        if i == 1:
+            monthly_state = group_state.iloc[:,-28*i:].T.sum().T
+            month_state_lag["state_monthly_lag_{}_month".format(i)] = monthly_state
+        elif i >= 7 and i < 13:
+            continue
+        else:
+            monthly_state = group_state.iloc[:, -28*i:-28*(i-1)].T.sum().T
+            month_state_lag["state_monthly_lag_{}_month".format(i)] = monthly_state
+
+    # combine out df
+    out_df = pd.merge(out_df, state_day_lag, left_on="state_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, state_day_year_lag, left_on="state_id", right_index=True, how="left")
+    out_df = pd.merge(out_df, month_state_lag, left_on="state_id", right_index=True, how="left")
+
+    ###############################################################################
+    # category flag
+    col_list = ['dept_id', 'cat_id', 'store_id', 'state_id']
+
+    df_cate_oh = pd.DataFrame({})
+    for i in col_list:
+        df_oh = pd.get_dummies(df[i])
+        df_cate_oh = pd.concat([df_cate_oh, df_oh], axis=1)
+
+    out_df = pd.concat([out_df, df_cate_oh], axis=1)
+
+    return out_df
+
+
+def basic_time_features(df):
+    df['date_t'] = pd.to_datetime(df['date'])
+    df['year'] = df['date_t'].dt.year
+    df['month'] = df['date_t'].dt.month
+    df['week'] = df['date_t'].dt.week
+    df['day'] = df['date_t'].dt.day
+    df['dayofweek'] = df['date_t'].dt.dayofweek
+    cat_cols = []
+    return df[['year', 'month', 'week', 'day', 'dayofweek', 'date', 'item_id']], cat_cols
+
+
+
+def identity_features(df):
+    cat_cols = ['item_id', 'dept_id', 'cat_id', 'store_id', 'state_id', 'event_name_1', 'event_type_1', 'event_name_2', 'event_type_2']
+    df = df.drop(['d', 'id', 'day', 'wm_yr_wk'], axis = 1)
+    return df, cat_cols
+
+
+def features_rolling(df):
+    cat_cols = []
+    created_cols = []
+
+    len_shift = 28
+    for i in [7,14,30,60,180]:
+        print('Rolling period:', i)
+        df['rolling_mean_'+str(i)] = df.groupby(['id'])['demand'].transform(lambda x: x.shift(len_shift).rolling(i).mean())
+        df['rolling_std_'+str(i)]  = df.groupby(['id'])['demand'].transform(lambda x: x.shift(len_shift).rolling(i).std())
+        created_cols.append('rolling_mean_'+str(i))
+        created_cols.append('rolling_std_'+str(i))
+
+    # Rollings
+    # with sliding shift
+    for len_shift in [1,7,14]:
+        print('Shifting period:', len_shift)
+        for len_window in [7,14,30,60]:
+            col_name = 'rolling_mean_tmp_'+str(len_shift)+'_'+str(len_window)
+            df[col_name] = df.groupby(['id'])['demand'].transform(lambda x: x.shift(len_shift).rolling(len_window).mean())
+            created_cols.append(col_name)
+
+    created_cols.append('date')
+    created_cols.append('item_id')
+
+    return df[created_cols], cat_cols
+
+
+
+def features_lag(df):
+    created_cols = []
+    cat_cols = []
+
+    lag_days = [col for col in range(28, 28+15)]
+    for lag_day in lag_days:
+        created_cols.append('lag_' + str(lag_day))
+        df['lag_' + str(lag_day)] = df.groupby(['id'])['demand'].transform(lambda x: x.shift(lag_day))
+
+    created_cols.append('date')
+    created_cols.append('item_id')
+
+    return df[created_cols], cat_cols
+
+
+
+def features_tsfresh_select(df):
+    df = df[['snap_CA', 'snap_TX', 'snap_WI', 'sell_price', 'item_id', 'date', 'store_id', 'id']]
+    print(df)
+    df = roll_time_series(df, column_id="item_id", column_sort="date")
+    existing_cols = df.columns.tolist()
+    y = df['demand']
+    X_cols = [x for x in existing_cols if not x == "demand"]
+    X = df[X_cols]
+    X = X.fillna(value = {'sell_price' : X['sell_price'].mean(skipna = True)})
+    X = X[['snap_CA', 'snap_TX', 'snap_WI', 'sell_price', 'item_id', 'date']]
+    X_filtered = extract_relevant_features(X, y, column_id='item_id', column_sort='date')
+
+    print(X_filtered.columns)
+
+    feature_df = pd.concat([X[['item_id', 'date']], X_filtered])
+
+    return feature_df, []
+
+
+
+def _get_tsfresh_melted_features_single_row(single_row_df):
+    df_cols = single_row_df.columns.tolist()
+    selected_cols = [x for x in df_cols if "d_" in x]
+    single_row_df_T = single_row_df[selected_cols].T
+    single_row_df_T["time"] = range(0, len(single_row_df_T.index))
+    single_row_df_T["id"] = range(0, len(single_row_df_T.index))
+    single_row_df_T.rename(columns={ single_row_df_T.columns[0]: "val" }, inplace = True)
+
+    X_feat = extract_features(single_row_df_T, column_id='id', column_sort='time')
+
+    feat_col_names = X_feat.columns.tolist()
+    feat_col_names_mapping = {}
+    for feat_col_name in feat_col_names:
+        feat_col_names_mapping[feat_col_name] = feat_col_name.replace('"','').replace(',','')
+
+    X_feat = X_feat.rename(columns = feat_col_names_mapping)
+    X_feat_T = X_feat.T
+
+    X_feat_T["item_id"] = np.repeat(single_row_df["item_id"].tolist()[0], len(X_feat_T.index))
+    X_feat_T["id"] = np.repeat(single_row_df["id"].tolist()[0], len(X_feat_T.index))
+    X_feat_T["cat_id"] = np.repeat(single_row_df["cat_id"].tolist()[0], len(X_feat_T.index))
+    X_feat_T["dept_id"] = np.repeat(single_row_df["dept_id"].tolist()[0], len(X_feat_T.index))
+    X_feat_T["store_id"] = np.repeat(single_row_df["store_id"].tolist()[0], len(X_feat_T.index))
+    X_feat_T["state_id"] = np.repeat(single_row_df["state_id"].tolist()[0], len(X_feat_T.index))
+    X_feat_T["variable"] = X_feat_T.index
+
+    single_row_df["variable"] = pd.Series(["demand"])
+    X_feat_T = X_feat_T.append(single_row_df, ignore_index= True)
+    return X_feat_T.set_index(['item_id', 'id', 'cat_id', 'dept_id', 'store_id', 'state_id','variable']).rename_axis(['day'], axis=1).stack().unstack('variable').reset_index()
+
+
+def _get_tsfresh_df_sales_melt(df_sales):
+    # X_feat = pd.DataFrame()
+    for i in range(len(df_sales.index)):
+        single_row_df = df_sales.loc[[i]]
+        X_feat_single_row_df = _get_tsfresh_melted_features_single_row(single_row_df)
+        if i == 0 :
+            X_feat = X_feat_single_row_df
+        else:
+            X_feat.append(X_feat_single_row_df, ignore_index = True)
+    return X_feat
+
+
+
+def features_tsfresh(df_sales_val, df_calendar, max_rows = 10):
+    # df is taken as an argument to make it work in the existing pipeline of saving features in meta_csv
+
+    df_sales_val_melt         = _get_tsfresh_df_sales_melt(df_sales_val[0:max_rows])
+    df_calendar.drop(['weekday', 'wday', 'month', 'year'], inplace = True, axis = 1)
+    merged_df = pd.merge(df_sales_val_melt, df_calendar, how = 'left', left_on = ['day'], right_on = ['d'])
+
+    # merged_df = pd.concat([df_sales_val_melt, df_submi_val, df_submi_eval], axis = 0)
+    selected_cols = [x for x in merged_df.columns.tolist() if x not in [ 'id', 'cat_id', 'dept_id', 'store_id', 'variable', 'day', 'demand', 'state_id']]
+    return merged_df[selected_cols], []
