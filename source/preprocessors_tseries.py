@@ -7,6 +7,7 @@ Original file is located at    https://colab.research.google.com/drive/1-uJqGeKZ
 
 ### Introduction
 
+
 Tabular augmentation is a new experimental space that makes use of novel and traditional data generation and synthesisation techniques to improve model prediction success. It is in essence a process of modular feature engineering and observation engineering while emphasising the order of augmentation to achieve the best predicted outcome from a given information set.
 Data augmentation can be defined as any method that could increase the size or improve the quality of a dataset by generating new features or instances without the collection of additional data-points. Data augmentation is of particular importance in image classification tasks where additional data can be created by cropping, padding, or flipping existing images.
 Tabular cross-sectional and time-series prediction tasks can also benefit from augmentation. Here we divide tabular augmentation into columnular and row-wise methods. Row-wise methods are further divided into extraction and data synthesisation techniques, whereas columnular methods are divided into transformation, interaction, and mapping methods.
@@ -33,8 +34,10 @@ The benefit of pipelines become clear when one wants to apply multiple augmentat
 
 """
 
+
 """Some of these categories are fluid and some techniques could fit into multiple buckets.
 This is an attempt to find an exhaustive number of techniques, but not an exhuastive list of implementations of the techniques.
+
 For example, there are thousands of ways to smooth a time-series, but we have only includes 1-2 techniques of interest under each category.
 
 ### **(1) [<font color="black">Transformation:</font>](#transformation)**
@@ -118,10 +121,12 @@ warnings.filterwarnings('ignore')
 
 import pandas as pd
 import numpy as np
+
 import re
 
 from tsfresh import extract_relevant_features, extract_features
 from tsfresh.utilities.dataframe_functions import roll_time_series
+
 
 
 from deltapy import transform, interact, mapper, extract
@@ -143,6 +148,7 @@ def data_copy():
   df["Date"] = pd.to_datetime(df["Date"])
   df = df.set_index("Date")
   return df
+
 
 
 def test_prepro_all():
@@ -408,3 +414,96 @@ def pd_ts_lag(df, input_raw_path = None, dir_out = None, features_group_name = N
         created_cols.append(col_name)
 
     return df[created_cols], cat_cols
+
+
+def test_prepro_all():
+  df = data_copy(); df.head()
+
+  df_out = transform.robust_scaler(df.copy(), drop=["Close_1"]); df_out.head()
+  df_out = transform.standard_scaler(df.copy(), drop=["Close"]); df_out.head()           
+  df_out = transform.fast_fracdiff(df.copy(), ["Close","Open"],0.5); df_out.head()
+  df_out = transform.windsorization(df.copy(),"Close",para,strategy='both'); df_out.head()
+  df_out = transform.operations(df.copy(),["Close"]); df_out.head()
+  df_out= transform.triple_exponential_smoothing(df.copy(),["Close"], 12, .2,.2,.2,0); 
+  df_out = transform.naive_dec(df.copy(), ["Close","Open"]); df_out.head()
+  df_out = transform.bkb(df.copy(), ["Close"]); df_out.head()
+  df_out = transform.butter_lowpass_filter(df.copy(),["Close"],4); df_out.head()
+  df_out = transform.instantaneous_phases(df.copy(), ["Close"]); df_out.head()
+  df_out = transform.kalman_feat(df.copy(), ["Close"]); df_out.head()
+  df_out = transform.perd_feat(df.copy(),["Close"]); df_out.head()
+  df_out = transform.fft_feat(df.copy(), ["Close"]); df_out.head()
+  df_out = transform.harmonicradar_cw(df.copy(), ["Close"],0.3,0.2); df_out.head()
+  df_out = transform.saw(df.copy(),["Close","Open"]); df_out.head()
+  df_out = transform.modify(df.copy(),["Close"]); df_out.head()
+  df_out = transform.multiple_rolling(df, columns=["Close"]); df_out.head()
+  df_out = transform.multiple_lags(df, start=1, end=3, columns=["Close"]); df_out.head()
+  df_out  = transform.prophet_feat(df.copy().reset_index(),["Close","Open"],"Date", "D"); df_out.head()
+
+  #**Interaction**
+  df_out = interact.lowess(df.copy(), ["Open","Volume"], df["Close"], f=0.25, iter=3); df_out.head()
+  df_out = interact.autoregression(df.copy()); df_out.head()
+  df_out = interact.muldiv(df.copy(), ["Close","Open"]); df_out.head()
+  df_out = interact.decision_tree_disc(df.copy(), ["Close"]); df_out.head()
+  df_out = interact.quantile_normalize(df.copy(), drop=["Close"]); df_out.head()
+  df_out = interact.tech(df.copy()); df_out.head()
+  df_out = interact.genetic_feat(df.copy()); df_out.head()
+
+  #**Mapping**
+  df_out = mapper.pca_feature(df.copy(),variance_or_components=0.80,drop_cols=["Close_1"]); df_out.head()
+  df_out = mapper.cross_lag(df.copy()); df_out.head()
+  df_out = mapper.a_chi(df.copy()); df_out.head()
+  df_out = mapper.encoder_dataset(df.copy(), ["Close_1"], 15); df_out.head()
+  df_out = mapper.lle_feat(df.copy(),["Close_1"],4); df_out.head()
+  df_out = mapper.feature_agg(df.copy(),["Close_1"],4 ); df_out.head()
+  df_out = mapper.neigh_feat(df.copy(),["Close_1"],4 ); df_out.head()
+
+
+  #**Extraction**
+  extract.abs_energy(df["Close"])
+  extract.cid_ce(df["Close"], True)
+  extract.mean_abs_change(df["Close"])
+  extract.mean_second_derivative_central(df["Close"])
+  extract.variance_larger_than_standard_deviation(df["Close"])
+  # extract.var_index(df["Close"].values,var_index_param)
+  extract.symmetry_looking(df["Close"])
+  extract.has_duplicate_max(df["Close"])
+  extract.partial_autocorrelation(df["Close"])
+  extract.augmented_dickey_fuller(df["Close"])
+  extract.gskew(df["Close"])
+  extract.stetson_mean(df["Close"])
+  extract.length(df["Close"])
+  extract.count_above_mean(df["Close"])
+  extract.longest_strike_below_mean(df["Close"])
+  extract.wozniak(df["Close"])
+  extract.last_location_of_maximum(df["Close"])
+  extract.fft_coefficient(df["Close"])
+  extract.ar_coefficient(df["Close"])
+  extract.index_mass_quantile(df["Close"])
+  extract.number_cwt_peaks(df["Close"])
+  extract.spkt_welch_density(df["Close"])
+  extract.linear_trend_timewise(df["Close"])
+  extract.c3(df["Close"])
+  extract.binned_entropy(df["Close"])
+  extract.svd_entropy(df["Close"].values)
+  extract.hjorth_complexity(df["Close"])
+  extract.max_langevin_fixed_point(df["Close"])
+  extract.percent_amplitude(df["Close"])
+  extract.cad_prob(df["Close"])
+  extract.zero_crossing_derivative(df["Close"])
+  extract.detrended_fluctuation_analysis(df["Close"])
+  extract.fisher_information(df["Close"])
+  extract.higuchi_fractal_dimension(df["Close"])
+  extract.petrosian_fractal_dimension(df["Close"])
+  extract.hurst_exponent(df["Close"])
+  extract.largest_lyauponov_exponent(df["Close"])
+  extract.whelch_method(df["Close"])
+  extract.find_freq(df["Close"])
+  extract.flux_perc(df["Close"])
+  extract.range_cum_s(df["Close"])
+  extract.structure_func(df["Close"])
+  extract.kurtosis(df["Close"])
+  extract.stetson_k(df["Close"])
+
+
+
+
