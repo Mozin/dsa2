@@ -348,6 +348,11 @@ def pd_colnum(df, col, pars):
     log(df.dtypes)
 
 
+def pd_colnum_fill_na_median(df, col, pars):
+	for quant_col in col:
+		df[quant_col].fillna((df[quant_col].median()), inplace=True)
+
+
 def pd_colnum_normalize(df, col, pars):
     log("### colnum normalize  ###############################################################")
     from util_feature import pd_colnum_normalize
@@ -1060,5 +1065,3 @@ print('Sparsity of solution: %s%%' % (sparsity * 100))
 if __name__ == "__main__":
     import fire
     fire.Fire()
-
-

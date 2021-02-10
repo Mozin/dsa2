@@ -1,7 +1,7 @@
 import pandas as pd
 import random, os, sys
 import numpy as np
-
+from source.prepro import *
 
 
 #### Add path for python import  #######################################
@@ -11,16 +11,24 @@ sys.path.append( path_repo_root)
 ########################################################################
 
 
+quant_cols = ["Quan_1", "Quan_2", "Quan_3", "Quan_4", "Quan_5", "Quan_6", "Quan_7", "Quan_8", "Quan_9", "Quan_10", "Quan_11", "Quan_12", "Quan_13", "Quan_14"]
+
+
 folder     = 'raw/'
 df         = pd.read_csv(folder+'TrainingDataset.csv', delimiter=',')
 df_test     = pd.read_csv(folder+'TestDataset.csv', delimiter=',')
 
 # Replacing the NA in the quant columns with median of those columns
 
-quant_cols = ["Quan_1", "Quan_2", "Quan_3", "Quan_4", "Quan_5", "Quan_6", "Quan_7", "Quan_8", "Quan_9", "Quan_10", "Quan_11", "Quan_12", "Quan_13", "Quan_14"]
-for quant_col in quant_cols:
-	df[quant_col].fillna((df[quant_col].median()), inplace=True)
-	df_test[quant_col].fillna((df[quant_col].median()), inplace=True)
+pd_colnum_fill_na_median(df, quant_cols, None)
+pd_colnum_fill_na_median(df_test, quant_cols, None)
+
+pd_colnum(df, quant_cols, None)
+pd_colnum(df_test, quant_cols, None)
+
+pd_colnum_normalize(df, quant_cols, None)
+pd_colnum_normalize(df_test, quant_cols, None)
+
 
 # Cat columns are fine
 
