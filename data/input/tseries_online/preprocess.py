@@ -3,6 +3,8 @@ import random, os, sys
 import numpy as np
 from source.prepro import *
 
+# =========== NOTES ==============
+# This is a multi regression problem and the features for the same have been generated using preprocess function and the preprocessing fucntions of ts
 
 #### Add path for python import  #######################################
 path_repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + "/"
