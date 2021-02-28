@@ -23,6 +23,7 @@
 import warnings, os, sys, re
 warnings.filterwarnings('ignore')
 import pandas as pd, numpy as np, copy
+import pdb
 
 ####################################################################################################
 #### Add path for python import
@@ -81,7 +82,7 @@ def pd_ts_date(df: pd.DataFrame, cols: list=None, pars: dict=None):
     coldate = [cols] if isinstance(cols, str) else cols
     col_add = pars.get('col_add', ['day', ',month'])
 
-    dfdate  =  None    
+    dfdate  =  None
     df2     = pd.DataFrame()
     for coli in coldate:
         df2[coli]               = pd.to_datetime(df[coli], errors='coerce')
@@ -117,16 +118,16 @@ def pd_ts_groupby(df: pd.DataFrame, cols: list=None, pars: dict=None):
 
     """
     colgroup  = pars.get('colgroupby')    #### list of list of columns for aggregation
-    colstat   = pars.get('colstat')     ####  column whwere : sales, amount, 
+    colstat   = pars.get('colstat')     ####  column whwere : sales, amount,
     calc_list = pars.get('calc_list', {'mean'})   ### what kind of stats
-    
-    colgroup_merge = [ colj for colgroupi in colgroup for colj in colgroupi ]   #### Flatten 
+
+    colgroup_merge = [ colj for colgroupi in colgroup for colj in colgroupi ]   #### Flatten
     colgroup_merge = list(set(colgroup_merge))
     dfall          = df[colgroup_merge].drop_duplicates(  colgroup_merge )
 
     for colgroupi in colgroup:
         df1   = df.groupby(colgroupi).agg({coli: set(calc_list) for coli in colstat})
-        dfall = dfall.join(df1, on=colgroupi, how='left') 
+        dfall = dfall.join(df1, on=colgroupi, how='left')
 
     return dfall
 
@@ -185,7 +186,7 @@ def pd_ts_rolling(df: pd.DataFrame, cols: list=None, pars: dict=None):
         print('Shifting period:', len_shift)
         for len_window in [7, 14, 30, 60]:
             col_name = 'rolling_mean_tmp_' + str(len_shift) + '_' + str(len_window)
-            df[col_name] = df.groupby(['id'])[dep_col].transform(
+            df[col_name] = df.groupby(colgroup)[colstat].transform(
                 lambda x: x.shift(len_shift).rolling(len_window).mean())
             col_new.append(col_name)
 
@@ -199,13 +200,13 @@ def pd_ts_lag(df: pd.DataFrame, cols: list=None, pars: dict=None):
     col_new = []
     cat_cols     = []
     id_cols = []
-    colgroupby = []
-    dep_col = []
+    colgroupby = pars.get('col_groupby', ['id'])
+    colstat      = pars['col_stat']
 
     lag_days = [col for col in range(28, 28 + 15)]
     for lag_day in lag_days:
         col_new.append('lag_' + str(lag_day))
-        df['lag_' + str(lag_day)] = df.groupby(colgroupby)[dep_col].transform(lambda x: x.shift(lag_day))
+        df['lag_' + str(lag_day)] = df.groupby(colgroupby)[colstat].transform(lambda x: x.shift(lag_day))
 
     for col_name in id_cols:
         col_new.append(col_name)
@@ -224,45 +225,55 @@ def pd_ts_difference(df: pd.DataFrame, cols: list=None, pars: dict=None):
 
 
 
+# def pd_ts_tsfresh_features(df: pd.DataFrame, cols: list=None, pars: dict=None):
+    # """
+    #
+    # :param df:
+    # :param cols:
+    # :return:
+    # """
+    #
+    # df_cols                 = df.columns.tolist()
+    # single_row_df_T         = df[cols].T
+    # single_row_df_T["time"] = range(0, len(single_row_df_T.index))
+    # single_row_df_T["id"]   = range(0, len(single_row_df_T.index))
+    # single_row_df_T.rename(columns={single_row_df_T.columns[0]: "val"}, inplace=True)
+    #
+    # X_feat = extract_features(single_row_df_T, column_id='id', column_sort='time')
+    #
+    # feat_col_names = X_feat.columns.tolist()
+    # feat_col_names_mapping = {}
+    # for feat_col_name in feat_col_names:
+    #     feat_col_names_mapping[feat_col_name] = feat_col_name.replace('"', '').replace(',', '')
+    #
+    # X_feat = X_feat.rename(columns=feat_col_names_mapping)
+    # X_feat_T = X_feat.T
+    #
+    # for col in cols:
+    #     X_feat_T[col] = np.repeat(df[col].tolist()[0], len(X_feat_T.index))
+    # # X_feat_T["item_id"] = np.repeat(df["item_id"].tolist()[0], len(X_feat_T.index))
+    # # X_feat_T["id"] = np.repeat(df["id"].tolist()[0], len(X_feat_T.index))
+    # # X_feat_T["cat_id"] = np.repeat(df["cat_id"].tolist()[0], len(X_feat_T.index))
+    # # X_feat_T["dept_id"] = np.repeat(df["dept_id"].tolist()[0], len(X_feat_T.index))
+    # # X_feat_T["store_id"] = np.repeat(df["store_id"].tolist()[0], len(X_feat_T.index))
+    # # X_feat_T["state_id"] = np.repeat(df["state_id"].tolist()[0], len(X_feat_T.index))
+    # X_feat_T["variable"] = X_feat_T.index
+    #
+    # df["variable"] = pd.Series(["demand"])
+    # X_feat_T = X_feat_T.append(df, ignore_index=True)
+    # pdb.set_trace()
+    # return X_feat_T.set_index(cols + ['variable']).rename_axis(['day'], axis=1).stack().unstack(
+    #     'variable').reset_index()
+
+
 def pd_ts_tsfresh_features(df: pd.DataFrame, cols: list=None, pars: dict=None):
-    """
-
-    :param df:
-    :param cols:
-    :return:
-    """
-
-    df_cols                 = df.columns.tolist()
-    selected_cols           = [x for x in df_cols if re.match("d_[0-9]", x)]
-    single_row_df_T         = df[selected_cols].T
-    single_row_df_T["time"] = range(0, len(single_row_df_T.index))
-    single_row_df_T["id"]   = range(0, len(single_row_df_T.index))
-    single_row_df_T.rename(columns={single_row_df_T.columns[0]: "val"}, inplace=True)
-
-    X_feat = extract_features(single_row_df_T, column_id='id', column_sort='time')
-
-    feat_col_names = X_feat.columns.tolist()
-    feat_col_names_mapping = {}
-    for feat_col_name in feat_col_names:
-        feat_col_names_mapping[feat_col_name] = feat_col_name.replace('"', '').replace(',', '')
-
-    X_feat = X_feat.rename(columns=feat_col_names_mapping)
-    X_feat_T = X_feat.T
-
-    for col in cols:
-        X_feat_T[col] = np.repeat(df[col].tolist()[0], len(X_feat_T.index))
-    # X_feat_T["item_id"] = np.repeat(df["item_id"].tolist()[0], len(X_feat_T.index))
-    # X_feat_T["id"] = np.repeat(df["id"].tolist()[0], len(X_feat_T.index))
-    # X_feat_T["cat_id"] = np.repeat(df["cat_id"].tolist()[0], len(X_feat_T.index))
-    # X_feat_T["dept_id"] = np.repeat(df["dept_id"].tolist()[0], len(X_feat_T.index))
-    # X_feat_T["store_id"] = np.repeat(df["store_id"].tolist()[0], len(X_feat_T.index))
-    # X_feat_T["state_id"] = np.repeat(df["state_id"].tolist()[0], len(X_feat_T.index))
-    X_feat_T["variable"] = X_feat_T.index
-
-    df["variable"] = pd.Series(["demand"])
-    X_feat_T = X_feat_T.append(df, ignore_index=True)
-    return X_feat_T.set_index(cols + ['variable']).rename_axis(['day'], axis=1).stack().unstack(
-        'variable').reset_index()
+    single_row_df         = df[cols]
+    single_row_df["time"] = range(0, len(single_row_df.index))
+    id_col = pars.get("id_col", "id")
+    if not "id_col" in pars.keys():
+        single_row_df["id"] = 1
+    X_feat = extract_features(single_row_df, column_id=id_col, column_sort='time')
+    return X_feat,  X_feat.columns.to_list()
 
 
 def pd_ts_deltapy_generic(df: pd.DataFrame, cols: list=None, pars: dict=None ):
@@ -565,7 +576,7 @@ def test_deltapy_all():
     df_out = mapper.cross_lag(df)
     '''
     Regarding https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test chi square test assumes frequencies distribution
-    and a frequency can't be a negative number. No familiar with the data but if it is safe to either shift them to have min > 0 
+    and a frequency can't be a negative number. No familiar with the data but if it is safe to either shift them to have min > 0
     or to normalize the data to be [0-1]. Since this is for the purpose of testing we'll be using: (df-df.min())/(df.max()-df.min())
     '''
     df_out = mapper.a_chi((df - df.min()) / (df.max() - df.min()))
@@ -618,7 +629,7 @@ def test_deltapy_all():
     extract.range_cum_s(df["Close"])
 
     '''
-    From https://github.com/firmai/deltapy#extraction example, It seems like the second argument of the 
+    From https://github.com/firmai/deltapy#extraction example, It seems like the second argument of the
     function must be: struct_param = {"Volume":df["Volume"].values, "Open": df["Open"].values}
     '''
     struct_param = {"Volume": df["Volume"].values, "Open": df["Open"].values}
@@ -864,4 +875,3 @@ autoregressive  : past data avg.
 
 
 """
-
